@@ -1,0 +1,10 @@
+-- Rollback nhẹ cho riêng các bảng V13 nếu cần.
+-- KHÔNG chạy nếu đã có dữ liệu vận hành thật.
+-- drop table if exists accounting_month_close cascade;
+-- drop table if exists accounting_action_log cascade;
+-- drop table if exists accounting_status cascade;
+-- drop table if exists bank_unidentified cascade;
+-- drop table if exists workflow_history cascade;
+-- drop table if exists file_repository cascade;
+-- drop table if exists doisoat_task cascade;
+-- drop table if exists doisoat_session cascade;

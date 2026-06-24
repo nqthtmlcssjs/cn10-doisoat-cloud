@@ -1,0 +1,5 @@
+CN10 V13 OFFICIAL STABLE
+Build: 2026-06-24
+Points: 12
+Required SQL: sql/00_V13_RUN_ONCE_OFFICIAL.sql
+Do not run old patch files from V10/V11/V12 for this package.
