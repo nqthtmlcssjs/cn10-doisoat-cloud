@@ -1,0 +1,5 @@
+-- CHẠY FILE NÀY NẾU MUỐN TẠO/ĐỒNG BỘ TOÀN BỘ DATABASE CN10 TỪ ĐẦU.
+-- Thứ tự khuyến nghị:
+-- 1) Chạy 01_schema_cn10.sql
+-- 2) Chạy 09_patch_v10_production_workflow.sql
+-- Nếu database của bạn đã có dữ liệu, KHÔNG drop bảng. Chỉ chạy các file theo thứ tự trên.

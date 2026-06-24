@@ -1,0 +1,4 @@
+window.CN10_CONFIG = {
+  SUPABASE_URL: 'https://PROJECT.supabase.co',
+  SUPABASE_PUBLISHABLE_KEY: 'sb_publishable_xxx'
+};
