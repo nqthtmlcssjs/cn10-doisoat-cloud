@@ -1,0 +1,25 @@
+(function(){
+function cell(r,i){return r&&r[i]!==undefined?r[i]:''}
+function clean(v){return String(v??'').replace(/[\.\-\s\+\u00A0]/g,'').trim().toUpperCase()}
+function money(v){if(v===null||v===undefined||v==='')return 0;if(typeof v==='number')return Number.isFinite(v)?v:0;const n=Number(String(v).trim().replace(/\./g,'').replace(/,/g,''));return Number.isFinite(n)?n:0}
+function textDate(v){if(v instanceof Date&&!isNaN(v))return v.toLocaleDateString('vi-VN');if(typeof v==='number'){const d=XLSX.SSF.parse_date_code(v);if(d)return `${String(d.d).padStart(2,'0')}/${String(d.m).padStart(2,'0')}/${d.y}`}return String(v??'').slice(0,10)}
+function addUnique(map,k,v){v=String(v??'').trim();if(!v)return;if(!map[k])map[k]=v;else if(!(`;${map[k]};`).toLowerCase().includes(`;${v};`.toLowerCase()))map[k]+='; '+v}
+function sheet(wb,n){const ws=wb.Sheets[n];if(!ws)throw new Error('Thiếu sheet '+n);return XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:''})}
+function findUnique(txt,lengths,dict){if(!txt||!txt.includes('H26'))return '';let p=txt.indexOf('H26'),found='',cnt=0;while(p>=0){for(const L of lengths){const cand=txt.slice(p,p+L);if(dict[cand]!==undefined){if(found!==cand){found=cand;cnt++}break}}if(cnt>1)return '';p=txt.indexOf('H26',p+1)}return cnt===1?found:''}
+function monthSinvoice(v){const s=textDate(v); if(!s)return ''; if(s.includes('/')){const a=s.split('/'); if(a.length===3)return `${a[1].padStart(2,'0')}/${a[2]}`} return s.slice(0,7)}
+function reconcileWorkbook(wb){
+ const th=sheet(wb,'Doisoat'), ds=sheet(wb,'dscanbothuphi'), sk=sheet(wb,'saoke'), hd=sheet(wb,'sinvoid'); const nk=wb.Sheets['nhatky_xuly']?sheet(wb,'nhatky_xuly'):[];
+ const dictBoSung={}; for(let i=1;i<nk.length;i++){const loai=String(cell(nk[i],1)||cell(nk[i],0)).toLowerCase().trim();const ref=String(cell(nk[i],2)||cell(nk[i],3)).trim();const ma=clean(cell(nk[i],3)||cell(nk[i],4)); if(loai&&ref&&ma)dictBoSung[`${loai}|${ref}`]=ma}
+ const thRows=[]; const dictThuPhi={}, dictNgay={}, dictDonVi={}; for(let i=1;i<th.length;i++){const maGoc=String(cell(th[i],2)||cell(th[i],1)).trim(); const ma=clean(maGoc); if(!ma||!ma.includes('H26'))continue; thRows.push({ma_hoso_goc:maGoc,ma_hoso_sach:ma,don_vi:String(cell(th[i],1)||''),ngay_thu:textDate(cell(th[i],3)||cell(th[i],5))}); dictThuPhi[ma]=0; dictNgay[ma]=''; dictDonVi[ma]=String(cell(th[i],1)||'')}
+ for(let i=6;i<ds.length;i++){const ma=clean(cell(ds[i],4)); if(!ma)continue; if(dictThuPhi[ma]===undefined)dictThuPhi[ma]=0; dictThuPhi[ma]+=money(cell(ds[i],9)); if(!dictNgay[ma])dictNgay[ma]=textDate(cell(ds[i],5));}
+ const lengths=[...new Set(Object.keys(dictThuPhi).map(x=>x.length))].sort((a,b)=>b-a); const bidv={}, refMap={}, skSeen=new Set();
+ for(let i=18;i<sk.length;i++){const ref=String(cell(sk[i],15)).trim(); const key=`saoke|${ref}`; let ma=dictBoSung[key]||findUnique(clean(cell(sk[i],11)),lengths,dictThuPhi); if(ma&&dictThuPhi[ma]!==undefined){bidv[ma]=(bidv[ma]||0)+money(cell(sk[i],6))-money(cell(sk[i],5)); addUnique(refMap,ma,ref); skSeen.add(i)}}
+ const inv={}, sohdMap={}, hdSeen=new Set(); for(let i=8;i<hd.length;i++){const soHD=String(cell(hd[i],3)).trim(); const key=`sinvoid|${soHD}`; let ma=dictBoSung[key]||findUnique(clean(String(cell(hd[i],42))+String(cell(hd[i],67))+String(cell(hd[i],72))),lengths,dictThuPhi); if(ma&&dictThuPhi[ma]!==undefined){inv[ma]=(inv[ma]||0)+money(cell(hd[i],32)); addUnique(sohdMap,ma,soHD); hdSeen.add(soHD)}}
+ const allMa=[...new Set([...Object.keys(dictThuPhi),...thRows.map(x=>x.ma_hoso_sach)])]; const ketqua=allMa.map(ma=>{const thuphi=dictThuPhi[ma]||0,b=bidv[ma]||0,s=inv[ma]||0; let loai=''; if(thuphi===b&&thuphi===s) loai=''; else if(b===0&&s>0)loai='THIEU_BIDV'; else if(b>0&&s===0)loai='THIEU_HOA_DON'; else loai='SAI_TIEN'; return {ma_hoso_goc:thRows.find(x=>x.ma_hoso_sach===ma)?.ma_hoso_goc||ma,ma_hoso_sach:ma,don_vi:dictDonVi[ma]||'',ngay_thu:dictNgay[ma]||'',thuphi,bidv:b,sinvoice:s,trang_thai:loai?'CAN_KIEM_TRA':'KHOP',loai_loi:loai,tham_chieu_bidv:refMap[ma]||'',so_hoa_don:sohdMap[ma]||''}});
+ const bankUn=[]; for(let i=18;i<sk.length;i++){if(skSeen.has(i))continue; const st=money(cell(sk[i],6))-money(cell(sk[i],5)); const dg=String(cell(sk[i],11)||''), ref=String(cell(sk[i],15)||''); if(ref||dg||st) bankUn.push({ngay_giao_dich:textDate(cell(sk[i],0)),tham_chieu:ref,dien_giai:dg,so_tien:st})}
+ const invUn=[]; for(let i=8;i<hd.length;i++){const so=String(cell(hd[i],3)).trim(); if(!so||hdSeen.has(so))continue; invUn.push({ngay_hoa_don:textDate(cell(hd[i],4)),so_hoa_don:so,tong_tien:money(cell(hd[i],32)),aq:String(cell(hd[i],42)||''),bp:String(cell(hd[i],67)||''),bu:String(cell(hd[i],72)||'')})}
+ const summary={tong_ho_so:ketqua.length, so_khop:ketqua.filter(x=>x.trang_thai==='KHOP').length}; summary.so_lech=summary.tong_ho_so-summary.so_khop; summary.tong_thuphi=ketqua.reduce((s,x)=>s+x.thuphi,0); summary.tong_bidv=ketqua.reduce((s,x)=>s+x.bidv,0); summary.tong_sinvoice=ketqua.reduce((s,x)=>s+x.sinvoice,0);
+ return {ketqua,bankUn,invUn,summary,rawCounts:{thuphi:ds.length,bank:sk.length,invoice:hd.length}};
+}
+window.CN10_ENGINE={reconcileWorkbook,clean,money,textDate};
+})();
