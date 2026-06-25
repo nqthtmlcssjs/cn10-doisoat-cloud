@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CN10 Official V14 - Fee & Accounting Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">CN10</div>
+      <div>
+        <div class="brand-title">Official V14</div>
+        <div class="brand-sub">Fee & Accounting Control</div>
+      </div>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" data-view="dashboard">📊 Điều hành</button>
+      <button class="nav-item" data-view="session">🚀 Phiên đối soát</button>
+      <button class="nav-item" data-view="issues">📌 Trung tâm lỗi</button>
+      <button class="nav-item" data-view="accounting">💰 Hạch toán</button>
+      <button class="nav-item" data-view="unidentified">🏦 Tiền chưa xác định</button>
+      <button class="nav-item" data-view="history">📜 Lịch sử</button>
+      <button class="nav-item" data-view="lookup">🔍 Tra cứu</button>
+      <button class="nav-item" data-view="admin">⚙️ Hệ thống</button>
+    </nav>
+    <div class="user-box">
+      <div class="small-label">Trạng thái</div>
+      <strong id="connectionStatus">Đang kiểm tra...</strong>
+      <p><b>Frontend:</b> <span id="frontVersion">V14.0.0</span><br><b>Database:</b> <span id="dbVersion">Đang đọc...</span></p>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div>
+        <h1>CN10 OFFICIAL V14</h1>
+        <p>Nền tảng ổn định: chọn điểm chắc chắn, upload wizard, đối soát, xử lý lỗi, dòng tiền và hạch toán.</p>
+      </div>
+      <div class="top-actions">
+        <span id="userBadge" class="user-badge">Chưa đăng nhập</span>
+        <input id="loginEmail" class="auth-input" type="email" value="admin@cn10.local" placeholder="Email" />
+        <input id="loginPassword" class="auth-input" type="password" placeholder="Mật khẩu" />
+        <button id="loginBtn" class="ghost-btn">Đăng nhập</button>
+        <button id="logoutBtn" class="ghost-btn hidden">Đăng xuất</button>
+        <button id="refreshBtn" class="ghost-btn">↻ Tải lại</button>
+      </div>
+    </header>
+
+    <section id="dashboard" class="view active-view">
+      <div class="hero-control">
+        <div>
+          <div class="eyebrow">CN10 PRODUCTION CONTROL CENTER</div>
+          <h2>Trung tâm điều hành</h2>
+          <p>Kiểm soát 12 điểm, phiên đối soát, lỗi cần xử lý và trạng thái hạch toán.</p>
+        </div>
+        <button class="primary-btn" data-jump="session">🚀 Tạo phiên</button>
+      </div>
+      <div class="kpi-grid">
+        <div class="kpi-card"><span>Phiên đang mở</span><strong id="kpiOpenSessions">0</strong></div>
+        <div class="kpi-card warn"><span>Hồ sơ cần xử lý</span><strong id="kpiIssues">0</strong></div>
+        <div class="kpi-card"><span>Tiền chưa xác định</span><strong id="kpiBankUnidentified">0</strong></div>
+        <div class="kpi-card ok"><span>Đủ điều kiện hạch toán</span><strong id="kpiReadyAccounting">0</strong></div>
+      </div>
+      <div class="control-grid">
+        <div class="panel"><h3>🗺️ 12 điểm vận hành</h3><div id="pointMap" class="point-map"></div></div>
+        <div class="panel"><h3>📂 Phiên gần đây</h3><div id="recentSessions"></div></div>
+      </div>
+    </section>
+
+    <section id="session" class="view">
+      <div class="section-card">
+        <div class="section-head">
+          <div><h2>Phiên đối soát</h2><p>Quy trình bắt buộc: tạo phiên → chọn kiểu upload → kiểm tra file → chạy → lưu → xử lý lỗi → chốt.</p></div>
+          <button id="loadSessionsBtn" class="ghost-btn">Tải phiên</button>
+        </div>
+        <div class="stepper">
+          <div class="step active" id="step1">1. Tạo phiên</div>
+          <div class="step" id="step2">2. Upload</div>
+          <div class="step" id="step3">3. Kiểm tra</div>
+          <div class="step" id="step4">4. Chạy</div>
+          <div class="step" id="step5">5. Lưu</div>
+          <div class="step" id="step6">6. Chốt</div>
+        </div>
+        <div class="form-line">
+          <select id="sessionDiem"><option value="">Đang tải điểm...</option></select>
+          <input id="sessionMonth" type="month" />
+          <input id="sessionNote" placeholder="Ghi chú phiên" />
+          <button id="createSessionBtn" class="primary-btn">＋ Tạo phiên</button>
+        </div>
+        <div id="sessionInfo" class="info-box">Chưa chọn phiên</div>
+      </div>
+
+      <div class="section-card">
+        <h2>Upload dữ liệu</h2>
+        <div class="upload-mode">
+          <label><input type="radio" name="uploadMode" value="one" checked> 1 file tổng hợp VBA</label>
+          <label><input type="radio" name="uploadMode" value="three"> 3 file riêng</label>
+        </div>
+
+        <div id="uploadOne" class="upload-panel">
+          <label class="file-box"><input id="fileWorkbook" type="file" accept=".xlsx,.xlsm,.xls"><span>📎 File tổng hợp VBA</span><small id="fileWorkbookName">Chưa chọn file</small></label>
+        </div>
+
+        <div id="uploadThree" class="upload-panel hidden">
+          <label class="file-box"><input id="fileThuPhi" type="file" accept=".xlsx,.xlsm,.xls"><span>1️⃣ File thu phí</span><small id="fileThuPhiName">Chưa chọn file</small></label>
+          <label class="file-box"><input id="fileBIDV" type="file" accept=".xlsx,.xlsm,.xls"><span>2️⃣ File sao kê BIDV</span><small id="fileBIDVName">Chưa chọn file</small></label>
+          <label class="file-box"><input id="fileSInvoice" type="file" accept=".xlsx,.xlsm,.xls"><span>3️⃣ File SInvoice</span><small id="fileSInvoiceName">Chưa chọn file</small></label>
+        </div>
+
+        <div class="checklist" id="fileChecklist"></div>
+        <div class="action-line">
+          <button id="validateFilesBtn" class="ghost-btn">✅ Kiểm tra file</button>
+          <button id="runReconcileBtn" class="primary-btn" disabled>🚀 Chạy đối soát</button>
+          <button id="saveResultBtn" class="success-btn" disabled>💾 Lưu kết quả</button>
+          <button id="closeSessionBtn" class="danger-btn" disabled>🔒 Chốt phiên</button>
+          <button id="exportResultBtn" class="ghost-btn" disabled>⬇️ Xuất Excel</button>
+        </div>
+        <div id="runMessage" class="message"></div>
+      </div>
+
+      <div class="section-card">
+        <h2>Kết quả đối soát phiên hiện tại</h2>
+        <div class="tabs">
+          <button class="tab active" data-tab="all">Tất cả</button>
+          <button class="tab" data-tab="review">Cần kiểm tra</button>
+          <button class="tab" data-tab="hd">Hóa đơn chưa nhận diện</button>
+          <button class="tab" data-tab="sk">Sao kê chưa nhận diện</button>
+        </div>
+        <div id="resultTable" class="table-wrap"><p class="empty-note">Chưa có kết quả.</p></div>
+      </div>
+
+      <div class="section-card">
+        <h2>Danh sách phiên</h2>
+        <div id="sessionTable"></div>
+      </div>
+    </section>
+
+    <section id="issues" class="view">
+      <div class="section-card"><h2>Trung tâm xử lý lỗi</h2><p>Chỉ xử lý dữ liệu đã lưu Supabase. Phân nhóm theo hướng hạch toán.</p><div id="issueBoard"></div></div>
+    </section>
+
+    <section id="accounting" class="view">
+      <div class="section-card"><h2>Dòng tiền & hạch toán</h2><div class="kpi-grid"><div class="kpi-card"><span>Chờ tiền về</span><strong id="accWaitingBank">0</strong></div><div class="kpi-card"><span>Chờ hóa đơn</span><strong id="accWaitingInvoice">0</strong></div><div class="kpi-card ok"><span>Đủ điều kiện</span><strong id="accReady">0</strong></div><div class="kpi-card"><span>Đã hạch toán</span><strong id="accDone">0</strong></div></div><div id="accountingTable"></div></div>
+    </section>
+
+    <section id="unidentified" class="view">
+      <div class="section-card"><h2>Tiền ngân hàng chưa xác định</h2><p>Theo dõi các giao dịch trong sao kê chưa gắn được mã hồ sơ.</p><div id="bankTable"></div></div>
+    </section>
+
+    <section id="history" class="view">
+      <div class="section-card"><div class="section-head"><div><h2>Lịch sử đối soát</h2><p>Mở lại các lần đã lưu.</p></div><button id="loadHistoryBtn" class="primary-btn">Tải lịch sử</button></div><div id="historyTable"></div></div>
+    </section>
+
+    <section id="lookup" class="view">
+      <div class="section-card"><h2>Tra cứu hồ sơ</h2><div class="lookup-line"><input id="lookupInput" placeholder="Nhập mã hồ sơ / hóa đơn / tham chiếu"><button id="lookupBtn" class="primary-btn">Tìm</button></div><div id="lookupResult"></div></div>
+    </section>
+
+    <section id="admin" class="view">
+      <div class="section-card"><h2>Thông tin hệ thống</h2><div id="systemInfo"></div></div>
+      <div class="section-card"><h2>Danh mục điểm</h2><div id="diemTable"></div></div>
+    </section>
+  </main>
+</div>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/engine.js"></script>
+<script src="assets/js/supabase-client.js"></script>
+<script src="assets/js/ui.js"></script>
+<script src="assets/js/data-api.js"></script>
+<script src="assets/js/upload-workflow.js"></script>
+<script src="assets/js/accounting.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
