@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>CN10 Fee Control Center Enterprise 1.0.0</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div class="shell">
+  <aside class="side">
+    <div class="brand"><div class="logo">CN10</div><div><b>Fee Control Center</b><br><small>Enterprise 1.0.0</small></div></div>
+    <nav class="nav">
+      <button class="active" data-view="dashboard">🏠 Dashboard</button>
+      <button data-view="sessions">📂 Phiên đối soát</button>
+      <button data-view="reconcile">📤 Upload & Đối soát</button>
+      <button data-view="issues">⚠ Trung tâm lỗi</button>
+      <button data-view="money">🏦 Tiền chưa xác định</button>
+      <button data-view="accounting">💰 Hạch toán</button>
+      <button data-view="admin">👥 Quản trị</button>
+    </nav>
+    <div class="status">
+      <div>Trạng thái</div>
+      <b id="connectionStatus">Đang kiểm tra...</b>
+      <p>Frontend: 1.0.0<br>Database: <span id="dbVersion">...</span></p>
+    </div>
+  </aside>
+  <main class="main">
+    <header class="top">
+      <div><h1>CN10 FEE CONTROL CENTER</h1><p>Quản lý thu phí, BIDV, hóa đơn, xử lý lỗi và hạch toán theo 12 điểm.</p></div>
+      <div class="auth">
+        <span id="userBadge" class="badge">Chưa đăng nhập</span>
+        <span id="loginBox"><input id="loginEmail" value="admin@cn10.local" placeholder="Email"/><input id="loginPassword" type="password" placeholder="Mật khẩu"/><button id="loginBtn" class="btn ghost">Đăng nhập</button></span>
+        <button id="logoutBtn" class="btn ghost hidden">Đăng xuất</button>
+        <button id="refreshBtn" class="btn ghost">↻ Tải lại</button>
+      </div>
+    </header>
+    <section id="dashboard" class="view active">
+      <div class="grid"><div class="kpi"><span>Hồ sơ</span><b id="kpiTotal">0</b></div><div class="kpi"><span>Khớp</span><b id="kpiMatched">0</b></div><div class="kpi"><span>Cần xử lý</span><b id="kpiReview">0</b></div><div class="kpi"><span>Tổng thu phí</span><b id="kpiMoney">0</b></div></div>
+      <div class="card"><h2>5 lần đối soát gần nhất</h2><div id="latestRuns" class="table"></div></div>
+    </section>
+    <section id="sessions" class="view">
+      <div class="card"><h2>Tạo phiên đối soát</h2>
+        <div class="line"><select id="sessionDiem"></select><input id="sessionKy" placeholder="Kỳ: 2026-06"/><input id="dateFrom" type="date"/><input id="dateTo" type="date"/><input id="sessionNote" placeholder="Ghi chú"/><button id="createSessionBtn" class="btn primary">➕ Tạo phiên</button></div>
+        <div id="sessionMsg" class="msg"></div>
+      </div>
+      <div class="card"><h2>Danh sách phiên</h2><div id="sessionTable" class="table"></div></div>
+    </section>
+    <section id="reconcile" class="view">
+      <div class="card"><h2>Upload & chạy đối soát</h2>
+        <p>Phiên hiện tại: <b id="currentSession">Chưa tạo/chưa chọn</b></p>
+        <div class="line"><label class="file">1 file tổng hợp VBA<input id="workbookInput" type="file" accept=".xlsx,.xlsm,.xls"/></label><span id="fileName">Chưa chọn file</span><button id="runBtn" class="btn primary">🚀 Chạy đối soát</button><button id="saveBtn" class="btn success" disabled>💾 Lưu Supabase</button></div>
+        <div id="runMsg" class="msg"></div>
+      </div>
+      <div class="card"><h2>Kết quả</h2><div id="resultTable" class="table"></div></div>
+    </section>
+    <section id="issues" class="view"><div class="card"><h2>Trung tâm xử lý lỗi</h2><div id="issueTable" class="table"></div></div></section>
+    <section id="money" class="view"><div class="card"><h2>Tiền BIDV chưa xác định</h2><div id="moneyTable" class="table"></div></div></section>
+    <section id="accounting" class="view"><div class="card"><h2>Trạng thái hạch toán</h2><div id="accountingTable" class="table"></div></div></section>
+    <section id="admin" class="view"><div class="card"><h2>Quản trị người dùng</h2><div class="line"><input id="userEmail" placeholder="email"/><input id="userName" placeholder="họ tên"/><select id="userRole"><option value="diem">diem</option><option value="ketoan">ketoan</option><option value="lanhdao">lanhdao</option><option value="admin">admin</option></select><select id="userDiem"></select><button id="userSaveBtn" class="btn success">Lưu quyền</button></div><div id="userMsg" class="msg"></div><div id="usersTable" class="table"></div></div></section>
+  </main>
+</div>
+<script src="assets/js/config.js"></script>
+<script src="assets/js/engine.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
