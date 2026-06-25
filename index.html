@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CN10 Enterprise Fee Control Center</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+  <div id="app" class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">CN10</div>
+        <div>
+          <h1>CN10 Enterprise</h1>
+          <p>Fee Control Center 1.0</p>
+        </div>
+      </div>
+      <nav class="menu">
+        <button data-view="dashboard" class="active">📊 Dashboard</button>
+        <button data-view="sessions">📁 Phiên đối soát</button>
+        <button data-view="upload">📤 Upload & Engine</button>
+        <button data-view="tasks">⚠️ Trung tâm lỗi</button>
+        <button data-view="bank">🏦 Tiền chưa xác định</button>
+        <button data-view="cases">🗂 Case Master</button>
+        <button data-view="admin">👥 Quản trị</button>
+        <button data-view="system">⚙️ Hệ thống</button>
+      </nav>
+      <div class="statusbox">
+        <span>Trạng thái</span>
+        <b id="sbStatus">Đang kiểm tra...</b>
+        <small id="sbVersion">Frontend 1.0.0</small>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h2>CN10 Enterprise Fee Control Center</h2>
+          <p>Quản lý đối soát ngày, dòng tiền, hóa đơn, task lỗi và vòng đời hồ sơ.</p>
+        </div>
+        <div class="authbar">
+          <span id="userBadge">Chưa đăng nhập</span>
+          <button id="reloadBtn" class="ghost">↻ Tải lại</button>
+          <button id="logoutBtn" class="ghost hidden">Đăng xuất</button>
+        </div>
+      </header>
+
+      <section id="loginView" class="card">
+        <h2>Đăng nhập</h2>
+        <p>Dùng tài khoản đã tạo trong Supabase Authentication.</p>
+        <div class="login-grid">
+          <input id="emailInput" placeholder="Email" value="admin@cn10.local">
+          <input id="passwordInput" type="password" placeholder="Mật khẩu">
+          <button id="loginBtn" class="primary">Đăng nhập</button>
+        </div>
+        <div id="loginMsg" class="message"></div>
+      </section>
+
+      <div id="mainViews" class="hidden">
+        <section id="dashboard" class="view active">
+          <div class="kpi-grid">
+            <div class="kpi"><span>Phiên hôm nay</span><strong id="kpiSessions">0</strong></div>
+            <div class="kpi green"><span>Hồ sơ khớp</span><strong id="kpiMatched">0</strong></div>
+            <div class="kpi orange"><span>Cần xử lý</span><strong id="kpiReview">0</strong></div>
+            <div class="kpi blue"><span>Tổng thu phí</span><strong id="kpiMoney">0</strong></div>
+          </div>
+          <div class="card">
+            <div class="section-title">
+              <h3>Phiên gần đây</h3>
+              <button onclick="CN10.loadDashboard()" class="ghost">Tải lại</button>
+            </div>
+            <div id="recentSessions" class="table-wrap"></div>
+          </div>
+        </section>
+
+        <section id="sessions" class="view">
+          <div class="card">
+            <h3>Tạo phiên đối soát ngày</h3>
+            <div class="form-grid four">
+              <select id="sessionDiem"></select>
+              <input id="sessionDate" type="date">
+              <input id="sessionNote" placeholder="Ghi chú phiên">
+              <button id="createSessionBtn" class="primary">+ Tạo phiên</button>
+            </div>
+            <div id="sessionMsg" class="message"></div>
+          </div>
+          <div class="card">
+            <h3>Danh sách phiên</h3>
+            <div id="sessionTable" class="table-wrap"></div>
+          </div>
+        </section>
+
+        <section id="upload" class="view">
+          <div class="card">
+            <h3>Upload & chạy engine</h3>
+            <div class="stepbar">
+              <span class="on">1. Chọn phiên</span>
+              <span>2. Chọn file</span>
+              <span>3. Preview</span>
+              <span>4. Engine</span>
+              <span>5. Lưu</span>
+            </div>
+            <div class="form-grid two">
+              <select id="uploadSession"></select>
+              <input id="workbookFile" type="file" accept=".xlsx,.xlsm,.xls">
+            </div>
+            <div class="actions">
+              <button id="previewBtn" class="ghost">🔎 Preview file</button>
+              <button id="runEngineBtn" class="primary" disabled>🚀 Chạy engine</button>
+              <button id="saveResultBtn" class="success" disabled>💾 Lưu Supabase</button>
+              <button id="exportResultBtn" class="ghost" disabled>⬇️ Xuất Excel</button>
+            </div>
+            <div id="uploadMsg" class="message"></div>
+          </div>
+          <div class="card">
+            <h3>Preview / Kết quả</h3>
+            <div id="previewBox" class="preview"></div>
+            <div id="resultTabs" class="tabs hidden">
+              <button data-tab="all" class="active">Tất cả</button>
+              <button data-tab="review">Cần xử lý</button>
+              <button data-tab="bank">Sao kê chưa nhận diện</button>
+              <button data-tab="invoice">Hóa đơn chưa nhận diện</button>
+            </div>
+            <div id="resultTable" class="table-wrap"></div>
+          </div>
+        </section>
+
+        <section id="tasks" class="view">
+          <div class="card"><div class="section-title"><h3>Trung tâm xử lý lỗi</h3><button onclick="CN10.loadTasks()" class="ghost">Tải lại</button></div><div id="tasksTable" class="table-wrap"></div></div>
+        </section>
+
+        <section id="bank" class="view">
+          <div class="card"><div class="section-title"><h3>Tiền / sao kê chưa xác định</h3><button onclick="CN10.loadBank()" class="ghost">Tải lại</button></div><div id="bankTable" class="table-wrap"></div></div>
+        </section>
+
+        <section id="cases" class="view">
+          <div class="card"><div class="section-title"><h3>Case Master - vòng đời hồ sơ</h3><button onclick="CN10.loadCases()" class="ghost">Tải lại</button></div><div id="caseTable" class="table-wrap"></div></div>
+        </section>
+
+        <section id="admin" class="view">
+          <div class="card">
+            <h3>Người dùng</h3>
+            <div class="form-grid five">
+              <input id="adminEmail" placeholder="email">
+              <input id="adminName" placeholder="họ tên">
+              <select id="adminRole"><option value="diem">diem</option><option value="ketoan">ketoan</option><option value="lanhdao">lanhdao</option><option value="admin">admin</option></select>
+              <select id="adminDiem"></select>
+              <button id="saveUserBtn" class="success">Lưu quyền</button>
+            </div>
+            <div id="adminMsg" class="message"></div>
+            <div id="usersTable" class="table-wrap"></div>
+          </div>
+        </section>
+
+        <section id="system" class="view">
+          <div class="card">
+            <h3>Thông tin hệ thống</h3>
+            <div id="systemInfo"></div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <script src="assets/js/config.js"></script>
+  <script src="assets/js/engine.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>
