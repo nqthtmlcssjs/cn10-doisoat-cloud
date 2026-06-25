@@ -1,4 +1,0 @@
-CN10 Official Stable
-Frontend: V14.0.0
-Database target: V14.0.0
-Release note: modular rewrite, reliable point dropdown, upload workflow fix, system version manager.
